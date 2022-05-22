@@ -12,8 +12,7 @@
  * FATAL("This prints the number 5 and exits with an error code: %d\n", 5);
  */
 #define FATAL(fmt, ...)                                                                                              \
-    do                                                                                                               \
-    {                                                                                                                \
+    do {                                                                                                             \
         fprintf(stderr, "Fatal error: %s in %s() on line %d:\n\t" fmt, __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
         exit(EXIT_FAILURE);                                                                                          \
     } while (0)
@@ -21,8 +20,7 @@
 /**
  * @brief 3D vector.
  */
-typedef struct vec3
-{
+typedef struct vec3 {
     float x;
     float y;
     float z;
@@ -31,8 +29,7 @@ typedef struct vec3
 /**
  * @brief A particle consisting of a position, velocity and mass.
  */
-typedef struct Particle
-{
+typedef struct Particle {
     vec3 pos;
     vec3 v;
     float mass;
@@ -47,13 +44,11 @@ typedef struct Particle
  * @param numParticles This pointer will be updated with the number of particles found in the file.
  * @return Particle* Array containing the particles from the file.
  */
-Particle *readInput(FILE *inputFile, int *numParticles)
-{
+Particle *readInput(FILE *inputFile, int *numParticles) {
     int n;
     fscanf(inputFile, "%d\n", &n);
     Particle *particles = malloc(n * sizeof(Particle));
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
         fscanf(inputFile, "%f %f %f ", &particles[i].pos.x, &particles[i].pos.y, &particles[i].pos.z);
         fscanf(inputFile, "%f %f %f ", &particles[i].v.x, &particles[i].v.y, &particles[i].v.z);
         fscanf(inputFile, "%f\n", &particles[i].mass);
@@ -69,11 +64,9 @@ Particle *readInput(FILE *inputFile, int *numParticles)
  * @param particles The particles to save.
  * @param numParticles Number of particles to save.
  */
-void saveParticles(FILE *file, Particle *particles, int numParticles)
-{
+void saveParticles(FILE *file, Particle *particles, int numParticles) {
     fprintf(file, "%d\n", numParticles);
-    for (int i = 0; i < numParticles; i++)
-    {
+    for (int i = 0; i < numParticles; i++) {
         fprintf(file, "%.1f %.1f %.1f ", particles[i].pos.x, particles[i].pos.y, particles[i].pos.z);
         fprintf(file, "%.1f %.1f %.1f ", particles[i].v.x, particles[i].v.y, particles[i].v.z);
         fprintf(file, "%.1f\n", particles[i].mass);
@@ -88,21 +81,16 @@ void saveParticles(FILE *file, Particle *particles, int numParticles)
  * @param timeSteps The number of time-steps to simulate for.
  * @param numThreads Number of threads to use for the simulation. Currently unused.
  */
-void startSimulation(Particle *particles, int n, int timeSteps, int numThreads)
-{
+void startSimulation(Particle *particles, int n, int timeSteps, int numThreads) {
     // Accelerations
     vec3 *acc = malloc(n * sizeof(vec3));
 
-    for (int t = 0; t < timeSteps; t++)
-    {
-        memset(acc, 0, n * sizeof(vec3)); // fill array with zeros
+    for (int t = 0; t < timeSteps; t++) {
+        memset(acc, 0, n * sizeof(vec3));
         // Compute all-to-all forces and accelerations
-        for (int q = 0; q < n; q++)
-        {
-            for (int j = 0; j < n; j++)
-            {
-                if (q == j)
-                {
+        for (int q = 0; q < n; q++) {
+            for (int j = 0; j < n; j++) {
+                if (q == j) {
                     // Skip interaction with self
                     continue;
                 }
@@ -118,8 +106,7 @@ void startSimulation(Particle *particles, int n, int timeSteps, int numThreads)
             }
         }
         // Update positions and velocities
-        for (int i = 0; i < n; i++)
-        {
+        for (int i = 0; i < n; i++) {
             particles[i].pos.x += particles[i].v.x;
             particles[i].pos.y += particles[i].v.y;
             particles[i].pos.z += particles[i].v.z;
@@ -146,10 +133,8 @@ void startSimulation(Particle *particles, int n, int timeSteps, int numThreads)
  * that order). A third argument - an input file - is optional.
  * @return int Exit code.
  */
-int main(int argc, char *argv[])
-{
-    if (argc != 3 && argc != 4)
-    {
+int main(int argc, char *argv[]) {
+    if (argc != 3 && argc != 4) {
         FATAL(
             "Please provide the number of time steps to simulate and number of threads to use.\n"
             "Optionally, provide an input file to read from.\n");
@@ -162,15 +147,11 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Reading input...\n\n");
     Particle *particles;
 
-    if (inputFilePath == NULL)
-    {
+    if (inputFilePath == NULL) {
         particles = readInput(stdin, &numParticles);
-    }
-    else
-    {
+    } else {
         FILE *inputFile = fopen(inputFilePath, "r");
-        if (inputFile == NULL)
-        {
+        if (inputFile == NULL) {
             FATAL("Cannot open file %s\n", inputFilePath);
         }
         particles = readInput(inputFile, &numParticles);
