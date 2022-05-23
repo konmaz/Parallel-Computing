@@ -139,17 +139,10 @@ void* computeForcesThread(void *arg){
     }
 
     // Barrier Synchronization wait for all the threads to reach this point
-    pthread_barrier_wait(&barrier);
+    //pthread_barrier_wait(&barrier);
 
     // Update positions and velocities
-    for (int i = start; i < end; i++) {
-        particles[i].pos.x += particles[i].v.x;
-        particles[i].pos.y += particles[i].v.y;
-        particles[i].pos.z += particles[i].v.z;
-        particles[i].v.x += acc[i].x;
-        particles[i].v.y += acc[i].y;
-        particles[i].v.z += acc[i].z;
-    }
+
     return NULL;
 }
 /**
@@ -166,15 +159,14 @@ void startSimulationThreaded(Particle *particles, int n, int timeSteps, int numT
 
     pthread_t threadsArray[numThreads]; // an array that contains all the threads
     ThreadArgs *threadArgsArray[numThreads]; // an array that contains all the threads arguments
+    pthread_barrier_init(&barrier, NULL, numThreads); // set the barrier
 
     for (int i = 0; i < numThreads; i++) {
         threadArgsArray[i] = createThreadArgs(particles,n,-1,acc,numThreads ); // malloc once instead of many times
     }
 
     for (int t = 0; t < timeSteps; t++) {
-        memset(acc, 0, n * sizeof(vec3));
-
-        pthread_barrier_init(&barrier, NULL, numThreads); // set the barrier
+        memset(acc, 0, n * sizeof(vec3)); // fill with 0
 
         for (int i = 0; i < numThreads; i++){ // start the threads
             threadArgsArray[i]->threadIndex = i; // all the arguments of the threads are the same except the thread index
@@ -184,7 +176,15 @@ void startSimulationThreaded(Particle *particles, int n, int timeSteps, int numT
         for (int i = 0; i < numThreads; i++) { // wait for all the threads to finish
             pthread_join(threadsArray[i], NULL);
         }
-        pthread_barrier_destroy(&barrier);
+        for (int i = 0; i < n; i++) {
+            particles[i].pos.x += particles[i].v.x;
+            particles[i].pos.y += particles[i].v.y;
+            particles[i].pos.z += particles[i].v.z;
+            particles[i].v.x += acc[i].x;
+            particles[i].v.y += acc[i].y;
+            particles[i].v.z += acc[i].z;
+        }
+        //pthread_barrier_destroy(&barrier);
     }
     for (int i = 0; i < numThreads; i++)
         free(threadArgsArray[i]);
