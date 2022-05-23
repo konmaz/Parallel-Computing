@@ -6,12 +6,11 @@
 #include <pthread.h>
 // Small epsilon
 #define EPS 0.0000001
-
+pthread_barrier_t   barrier; // used for barrier synchronization
 /**
  * @brief Macro for easy termination in case of errors. Usage is similar to printf:
  * FATAL("This prints the number 5 and exits with an error code: %d\n", 5);
  */
-int arrived = 0;
 #define FATAL(fmt, ...)                                                                                              \
     do {                                                                                                             \
         fprintf(stderr, "Fatal error: %s in %s() on line %d:\n\t" fmt, __FILE__, __func__, __LINE__, ##__VA_ARGS__); \
@@ -102,7 +101,8 @@ void saveParticles(FILE *file, Particle *particles, int numParticles) {
 }
 /**
  * @brief Start to process a segment of the array particles.
- * @param arg A void pointer that point to a ThreadArgs struct
+ *
+ * @param arg A void pointer that point to a ThreadArgs struct.
  * @return NULL
  */
 void* computeForcesThread(void *arg){
@@ -138,11 +138,11 @@ void* computeForcesThread(void *arg){
         }
     }
 
-    // Barrier Synchronization but when I use it here it takes more time
-    //pthread_barrier_wait(&barrier);
+    // Barrier Synchronization wait for all the threads to reach this point
+    pthread_barrier_wait(&barrier);
 
     // Update positions and velocities
-    for (int i = 0; i < n; i++) {
+    for (int i = start; i < end; i++) {
         particles[i].pos.x += particles[i].v.x;
         particles[i].pos.y += particles[i].v.y;
         particles[i].pos.z += particles[i].v.z;
@@ -164,24 +164,27 @@ void startSimulationThreaded(Particle *particles, int n, int timeSteps, int numT
     // Accelerations
     vec3 *acc = malloc(n * sizeof(vec3));
 
-    pthread_t threadsArray[numThreads];
-    ThreadArgs *threadArgsArray[numThreads];
+    pthread_t threadsArray[numThreads]; // an array that contains all the threads
+    ThreadArgs *threadArgsArray[numThreads]; // an array that contains all the threads arguments
 
     for (int i = 0; i < numThreads; i++) {
-        threadArgsArray[i] = createThreadArgs(particles,n,-1,acc,numThreads );
+        threadArgsArray[i] = createThreadArgs(particles,n,-1,acc,numThreads ); // malloc once instead of many times
     }
 
     for (int t = 0; t < timeSteps; t++) {
         memset(acc, 0, n * sizeof(vec3));
-        //pthread_barrier_init(&barrier, NULL, numThreads);
-        for (int i = 0; i < numThreads; i++){
-            threadArgsArray[i]->threadIndex = i;
+
+        pthread_barrier_init(&barrier, NULL, numThreads); // set the barrier
+
+        for (int i = 0; i < numThreads; i++){ // start the threads
+            threadArgsArray[i]->threadIndex = i; // all the arguments of the threads are the same except the thread index
             pthread_create(&threadsArray[i], NULL, computeForcesThread, (void *) threadArgsArray[i]);
         }
-        for (int i = 0; i < numThreads; i++) {
+
+        for (int i = 0; i < numThreads; i++) { // wait for all the threads to finish
             pthread_join(threadsArray[i], NULL);
         }
-        //pthread_barrier_destroy(&barrier);
+        pthread_barrier_destroy(&barrier);
     }
     for (int i = 0; i < numThreads; i++)
         free(threadArgsArray[i]);
@@ -190,6 +193,7 @@ void startSimulationThreaded(Particle *particles, int n, int timeSteps, int numT
 }
 
 /**
+ * Old Serial Version
  * @brief Performs a serial N-Body simulation with the given particles for the provided number of time-steps.
  *
  * @param particles The particles to simulate.
