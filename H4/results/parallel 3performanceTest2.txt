@@ -1,0 +1,97 @@
+[f120191@pg-interactive foo]$ for cmd in 1 1; do ./a.out 3 $cmd performanceTest2.in > /dev/null; echo "------"; done
+Reading input...
+
+Starting n-body simulation using 1 threads
+Simulation of 80000 particles complete -- Took: 162.776307 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 1 threads
+Simulation of 80000 particles complete -- Took: 172.186277 seconds.
+
+
+
+
+
+
+
+
+
+
+
+[f120191@pg-interactive foo]$ for cmd in 1 1 2 2 4 4 8 8 16 16; do ./a.out 3 $cmd performanceTest2.in > /dev/null; echo "------"; done
+Reading input...
+
+Starting n-body simulation using 1 threads
+Simulation of 80000 particles complete -- Took: 159.534164 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 1 threads
+Simulation of 80000 particles complete -- Took: 159.147024 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 2 threads
+Simulation of 80000 particles complete -- Took: 81.804539 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 2 threads
+Simulation of 80000 particles complete -- Took: 82.605803 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 4 threads
+Simulation of 80000 particles complete -- Took: 42.762383 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 4 threads
+Simulation of 80000 particles complete -- Took: 42.493651 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 8 threads
+Simulation of 80000 particles complete -- Took: 21.126042 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 8 threads
+Simulation of 80000 particles complete -- Took: 21.253385 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 16 threads
+Simulation of 80000 particles complete -- Took: 10.623103 seconds.
+
+Saving particles...
+------
+Reading input...
+
+Starting n-body simulation using 16 threads
+Simulation of 80000 particles complete -- Took: 10.589024 seconds.
+
+Saving particles...
+------
+[f120191@pg-interactive foo]$ ^C
+[f120191@pg-interactive foo]$
+

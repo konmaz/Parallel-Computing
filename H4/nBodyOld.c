@@ -3,9 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <pthread.h>
+
 // Small epsilon
 #define EPS 0.0000001
+
 /**
  * @brief Macro for easy termination in case of errors. Usage is similar to printf:
  * FATAL("This prints the number 5 and exits with an error code: %d\n", 5);
@@ -33,33 +34,6 @@ typedef struct Particle {
     vec3 v;
     float mass;
 } Particle;
-/**
- * @brief A struct that helps to pass arguments to a thread
- */
-typedef struct ThreadArgs {
-    Particle *particlesArray;
-    int n; // size of array particlesArray
-    int threadIndex;
-    vec3 *acc;
-    int numThreads;
-} ThreadArgs;
-
-/**
- * @brief Creates a ThreadArgs struct sets its values and returns the pointer of it.
- *
- * @param particlesArray The particles to simulate.
- * @param n The size of the particlesArray.
- * @param threadIndex The index of a thread it is used inside a thread to calculate the array positions.
- */
-ThreadArgs *createThreadArgs(Particle *particlesArray, int n, int threadIndex, vec3* acc, int numThreads) {
-    ThreadArgs *args = malloc(sizeof(ThreadArgs));
-    args->particlesArray = particlesArray;
-    args->n = n;
-    args->threadIndex = threadIndex;
-    args->acc = acc;
-    args->numThreads = numThreads;
-    return args;
-}
 
 /**
  * @brief Reads input particles from a given file. The first line of the file is the number of particles N. The next N
@@ -98,101 +72,8 @@ void saveParticles(FILE *file, Particle *particles, int numParticles) {
         fprintf(file, "%.1f\n", particles[i].mass);
     }
 }
-/**
- * @brief Start to process a segment of the array particles.
- *
- * @param arg A void pointer that point to a ThreadArgs struct.
- * @return NULL
- */
-void* computeForcesThread(void *arg){
-    ThreadArgs *args = (ThreadArgs *)arg;
-    Particle *particles = args->particlesArray;
-    int threadIndex = args->threadIndex;
-    int n = args->n;
-    vec3 *acc = args->acc;
-    int numThreads = args->numThreads;
-
-    int start = threadIndex * (n / numThreads);
-    int end = start + (n / numThreads);
-    if(numThreads != 1 && n % numThreads != 0 && (threadIndex + 1) == numThreads){
-        end += n % numThreads;
-    }
-    // Compute all-to-all forces and accelerations
-    for (int i = start; i < end; i++) {
-        for (int j = 0; j < n; j++) {
-            if (i == j) {
-                // Skip interaction with self
-                continue;
-            }
-            float rx = particles[j].pos.x - particles[i].pos.x;
-            float ry = particles[j].pos.y - particles[i].pos.y;
-            float rz = particles[j].pos.z - particles[i].pos.z;
-            float dd = rx * rx + ry * ry + rz * rz + EPS;
-            float d = 1 / sqrtf(dd * dd * dd);
-            float s = particles[j].mass * d;
-
-            acc[i].x += rx * s;
-            acc[i].y += ry * s;
-            acc[i].z += rz * s;
-        }
-    }
-
-    // Barrier Synchronization wait for all the threads to reach this point
-    //pthread_barrier_wait(&barrier);
-
-
-    return NULL;
-}
-/**
- * @brief Performs a threaded N-Body simulation with the given particles for the provided number of time-steps.
- *
- * @param particles The particles to simulate.
- * @param n The total number of particles.
- * @param timeSteps The number of time-steps to simulate for.
- * @param numThreads Number of threads to use for the simulation.
- */
-void startSimulationThreaded(Particle *particles, int n, int timeSteps, int numThreads) {
-    // Accelerations
-    vec3 *acc = malloc(n * sizeof(vec3));
-
-    pthread_t threadsArray[numThreads]; // an array that contains all the threads
-    ThreadArgs *threadArgsArray[numThreads]; // an array that contains all the threads arguments
-    //pthread_barrier_init(&barrier, NULL, numThreads); // set the barrier
-
-    for (int i = 0; i < numThreads; i++) {
-        threadArgsArray[i] = createThreadArgs(particles,n,-1,acc,numThreads ); // malloc once instead of many times
-    }
-
-    for (int t = 0; t < timeSteps; t++) {
-        memset(acc, 0, n * sizeof(vec3)); // fill with 0
-
-        for (int i = 0; i < numThreads; i++){ // start the threads
-            threadArgsArray[i]->threadIndex = i; // all the arguments of the threads are the same except the thread index
-            pthread_create(&threadsArray[i], NULL, computeForcesThread, (void *) threadArgsArray[i]);
-        }
-
-        for (int i = 0; i < numThreads; i++) { // wait for all the threads to finish
-            pthread_join(threadsArray[i], NULL);
-        }
-        // Update positions and velocities
-        for (int i = 0; i < n; i++) {
-            particles[i].pos.x += particles[i].v.x;
-            particles[i].pos.y += particles[i].v.y;
-            particles[i].pos.z += particles[i].v.z;
-            particles[i].v.x += acc[i].x;
-            particles[i].v.y += acc[i].y;
-            particles[i].v.z += acc[i].z;
-        }
-        //pthread_barrier_destroy(&barrier);
-    }
-    for (int i = 0; i < numThreads; i++)
-        free(threadArgsArray[i]);
-    free(acc);
-
-}
 
 /**
- * Old Serial Version
  * @brief Performs a serial N-Body simulation with the given particles for the provided number of time-steps.
  *
  * @param particles The particles to simulate.
@@ -207,21 +88,21 @@ void startSimulation(Particle *particles, int n, int timeSteps, int numThreads) 
     for (int t = 0; t < timeSteps; t++) {
         memset(acc, 0, n * sizeof(vec3));
         // Compute all-to-all forces and accelerations
-        for (int i = 0; i < n; i++) {
+        for (int q = 0; q < n; q++) {
             for (int j = 0; j < n; j++) {
-                if (i == j) {
+                if (q == j) {
                     // Skip interaction with self
                     continue;
                 }
-                float rx = particles[j].pos.x - particles[i].pos.x;
-                float ry = particles[j].pos.y - particles[i].pos.y;
-                float rz = particles[j].pos.z - particles[i].pos.z;
+                float rx = particles[j].pos.x - particles[q].pos.x;
+                float ry = particles[j].pos.y - particles[q].pos.y;
+                float rz = particles[j].pos.z - particles[q].pos.z;
                 float dd = rx * rx + ry * ry + rz * rz + EPS;
                 float d = 1 / sqrtf(dd * dd * dd);
                 float s = particles[j].mass * d;
-                acc[i].x += rx * s;
-                acc[i].y += ry * s;
-                acc[i].z += rz * s;
+                acc[q].x += rx * s;
+                acc[q].y += ry * s;
+                acc[q].z += rz * s;
             }
         }
         // Update positions and velocities
@@ -255,8 +136,8 @@ void startSimulation(Particle *particles, int n, int timeSteps, int numThreads) 
 int main(int argc, char *argv[]) {
     if (argc != 3 && argc != 4) {
         FATAL(
-                "Please provide the number of time steps to simulate and number of threads to use.\n"
-                "Optionally, provide an input file to read from.\n");
+            "Please provide the number of time steps to simulate and number of threads to use.\n"
+            "Optionally, provide an input file to read from.\n");
     }
     int timeSteps = atoi(argv[1]);
     int numThreads = atoi(argv[2]);
@@ -281,7 +162,7 @@ int main(int argc, char *argv[]) {
     struct timespec start, end;
     clock_gettime(CLOCK_MONOTONIC, &start);
 
-    startSimulationThreaded(particles, numParticles, timeSteps, numThreads);
+    startSimulation(particles, numParticles, timeSteps, numThreads);
 
     clock_gettime(CLOCK_MONOTONIC, &end);
     double timeSpent = (end.tv_sec - start.tv_sec);
