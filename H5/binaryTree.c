@@ -148,9 +148,13 @@ long traverse(Tree root){
     long val = root->value;
     long v1 = 0, v2 =0;
     #pragma omp task shared(v1)
-    v1 = computeSumSerial(root->left);
-    #pragma omp task shared(v2)
-    v2 = computeSumSerial(root->right);
+    {
+        v1 = computeSumSerial(root->left);
+    }
+    #pragma omp taskwait
+    {
+        v2 = computeSumSerial(root->right);
+    }
     #pragma omp taskwait
     return val + v1 + v2;
 }
@@ -160,7 +164,6 @@ long parallelSum(Tree root, int threads) {
     {
         #pragma omp single
         s =  traverse(root);
-        #pragma omp taskwait
     }
     return s;
 }
