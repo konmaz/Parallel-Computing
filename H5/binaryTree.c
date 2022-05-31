@@ -141,24 +141,29 @@ long computeSumSerial(Tree root) {
     return val;
 }
 
+/**
+ * @brief Computes recursively the sum in parallel.
+ * @param root The root node.
+ * @param depth The number of threads.
+ * @return The sum.
+ */
 long computeSumParallel(Tree root, int depth){
     if (root == NULL) {
         return 0;
     }
-    if (depth == 0){
+    if (depth == 0){ // if they are no more available threads call the serial implementation
         return computeSumSerial(root);
     }
-    long val = root->value;
-    long v1 = 0, v2 =0;
-    #pragma omp task shared(v1)
+    long val = root->value, v1, v2;
+    #pragma omp task shared(v1) // create new task shared value v1
     {
-        v1 = computeSumParallel(root->left, depth - 1);
+        v1 = computeSumParallel(root->left, depth - 1); // decrease the number of threads by 1
     }
-    #pragma omp task shared(v2)
+    #pragma omp task shared(v2) // create new task shared value v2
     {
-        v2 = computeSumParallel(root->right, depth - 1);
+        v2 = computeSumParallel(root->right, depth - 1); // decrease the number of threads by 1
     }
-    #pragma omp taskwait
+    #pragma omp taskwait // wait for the two task to finish before returning
     return val + v1 + v2;
 }
 long parallelSum(Tree root, int threads) {
@@ -166,7 +171,7 @@ long parallelSum(Tree root, int threads) {
     #pragma omp parallel
     {
         #pragma omp single
-        s = computeSumParallel(root, threads);
+        s = computeSumParallel(root, threads); // depth is the number of available threads
     }
     return s;
 }
