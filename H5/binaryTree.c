@@ -145,7 +145,7 @@ long traverse(Tree root, int depth){
     if (root == NULL) {
         return 0;
     }
-    if (depth == 0){ // If there are no more threads call serial function
+    if (depth == 0){
         return computeSumSerial(root);
     }
     long val = root->value;
@@ -161,9 +161,6 @@ long traverse(Tree root, int depth){
     return val + v1 + v2;
 }
 long parallelSum(Tree root, int threads) {
-//    if (threads == 1){
-//        return computeSumSerial(root);
-//    }
     long s;
     #pragma omp parallel
     {
