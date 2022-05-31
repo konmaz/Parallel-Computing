@@ -321,7 +321,33 @@ void printTree(Tree root) {
     printf("%ld\n", root->value);
     printTree(root->right);
 }
-
+long computeSumParallel(Tree root, int depth){
+    if (root == NULL) {
+        return 0;
+    }
+    if (depth == 0){
+        return computeSumSerial(root);
+    }
+    long val = root->value;
+    long v1 = 0, v2 =0;
+    #pragma omp task shared(v1)
+    {
+        v1 = computeSumParallel(root->left, depth - 1);
+    }
+    #pragma omp task shared(v2)
+    {
+        v2 = computeSumParallel(root->right, depth - 1);
+    }
+#pragma omp taskwait
+    return val + v1 + v2;
+}
 long parallelSum(Tree root, int threads) {
-    return computeSumSerial(root);
+    long s;
+#pragma omp parallel
+    {
+#pragma omp single
+        s = computeSumParallel(root, threads);
+    }
+    return s;
+
 }

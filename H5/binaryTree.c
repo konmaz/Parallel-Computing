@@ -141,7 +141,7 @@ long computeSumSerial(Tree root) {
     return val;
 }
 
-long traverse(Tree root, int depth){
+long computeSumParallel(Tree root, int depth){
     if (root == NULL) {
         return 0;
     }
@@ -152,10 +152,11 @@ long traverse(Tree root, int depth){
     long v1 = 0, v2 =0;
     #pragma omp task shared(v1)
     {
-        v1 = traverse(root->left,depth-1);
+        v1 = computeSumParallel(root->left, depth - 1);
     }
+    #pragma omp task shared(v2)
     {
-        v2 = traverse(root->right, depth-1);
+        v2 = computeSumParallel(root->right, depth - 1);
     }
     #pragma omp taskwait
     return val + v1 + v2;
@@ -165,7 +166,7 @@ long parallelSum(Tree root, int threads) {
     #pragma omp parallel
     {
         #pragma omp single
-        s =  traverse(root, threads);
+        s = computeSumParallel(root, threads);
     }
     return s;
 }
