@@ -1,12 +1,57 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
-
+#include <mpi.h>
 #include "linkedlist.h"
 #include "hashtable.h"
 #include "stringmanipulation.h"
 #include "stringlist.h"
 #include "pw_helpers.h"
+
+/**
+ *
+ * @return The number of lines a file has
+ */
+int countLines(char *filename){
+    FILE *fp = fopen(filename,"r");
+    int ch=0;
+    int lines=0;
+    while(!feof(fp))
+    {
+        ch = fgetc(fp);
+        if(ch == '\n')
+        {
+            lines++;
+        }
+    }
+    fclose(fp);
+    return lines;
+
+}
+
+/**
+ * Splits a text file into 'numberOfParts' parts each part has a name t0, t1, ... ,tn
+ * @param filename
+ * @param numberOfParts
+ */
+void splitter(char *filename,int numberOfParts){
+    FILE *fp = fopen(filename,"r");
+    int ch=0;
+    int lines=0;
+    while(!feof(fp))
+    {
+        ch = fgetc(fp);
+        if(ch == '\n')
+        {
+            lines++;
+        }
+    }
+    fclose(fp);
+
+
+
+}
+
 
 /**
  * Our entrypoint. We require two arguments to our program: the paths to a passwd and
@@ -21,6 +66,9 @@ int main(int argc, char **argv) {
         fprintf(stderr, "Usage: ./guessword <passwd> <shadow>");
         return EXIT_FAILURE;
     }
+
+
+    MPI_Init(&argc, &argv);
 
     ///////////////////////////////////////////////////////////////////
     // We now set up the local environment
@@ -41,10 +89,12 @@ int main(int argc, char **argv) {
 
     // We will try the provided list of passwords and all usernames appended
     // with 00.
-    tryPasswords(pwListMain, users.passwords, users.hashSetting);
 
-    struct stringList *appendedPasswords = manipulateList(users.usernames, '\0', "00", 1);
-    tryPasswords(appendedPasswords, users.passwords, users.hashSetting);
+   tryPasswords(pwListMain, users.passwords, users.hashSetting);
+
+   struct stringList *appendedPasswords = manipulateList(users.usernames, '\0', "00", 1);
+   tryPasswords(appendedPasswords, users.passwords, users.hashSetting);
+
 
     ///////////////////////////////////////////////////////////////////
     // Cleanup
@@ -56,4 +106,10 @@ int main(int argc, char **argv) {
 
     // Free users struct/information
     freeUserData(users);
+
+
+    MPI_Finalize();
+
+
+
 }

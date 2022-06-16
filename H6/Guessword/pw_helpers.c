@@ -1,6 +1,6 @@
 #define _DEFAULT_SOURCE
 #define _GNU_SOURCE
-
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -219,6 +219,12 @@ void freeUserData(struct users users) {
     free(users.hashSetting);
 }
 
+void skip_line(FILE *fp)
+{
+    int c;
+    while (c = fgetc(fp), c != '\n' && c != EOF);
+}
+
 /**
  * This function will read a file of strings to a struct stringList, which
  * can be used to easily and quickly read in additional data. The file should
@@ -227,6 +233,12 @@ void freeUserData(struct users users) {
  * you should keep track of yourself).
  */
 struct stringList *readStringsFile(char *filename, size_t maxLength) {
+    int numProcesses, processId;
+    MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
+    MPI_Comm_rank(MPI_COMM_WORLD, &processId);
+
+    printf("%d %d\n",processId, numProcesses);
+
     // Determine the number of entries
     FILE *file = fopen(filename, "r");
     if(file == NULL) {
@@ -234,16 +246,33 @@ struct stringList *readStringsFile(char *filename, size_t maxLength) {
         return allocStringList(1, maxLength);
     }
 
-    int count = lineCount(file);
+    int count = lineCount(file); // totalSize
+    
+    // threads computations
+    int n = count;
+    int start = processId * (n / numProcesses);
+    int end = start + (n / numProcesses);
+    if(numProcesses != 1 && n % numProcesses != 0 && (processId + 1) == numProcesses){
+        end += n % numProcesses;
+    }
+
+    int localSize = end-start;
 
     // Put results in a stringList
-    struct stringList *results = allocStringList(count, maxLength);
+    struct stringList *results = allocStringList(localSize, maxLength);
 
-    for(int i = 0; i < count; i++) {
+
+    for (int i = 0; i < start; ++i) {
+        skip_line(file);
+    }
+
+
+    for(int i = 0; i < localSize; i++) {
         fgets(results->strings[i], maxLength, file);
         strtok(results->strings[i], "\n"); // get rid of the newline at the end
     }
 
+    printf("\n%d %d\n",processId, localSize);
     fclose(file); // clean up
     return results;
 }
