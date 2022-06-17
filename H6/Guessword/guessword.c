@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     struct users users = parseInput(passwdPath, shadowPath, false);
 
     // Read precomputed guess list
-    struct stringList *pwListMain = readStringsFile("Files/top250.txt", MAX_PW_LENGTH);
+    struct stringList *pwListMain = readStringsFile("Files/dict.txt", MAX_PW_LENGTH);
 
     ///////////////////////////////////////////////////////////////////
     // We will now start to do the real work
@@ -91,6 +91,8 @@ int main(int argc, char **argv)
     tryPasswords(pwListMain, users.passwords, users.hashSetting);
     
 
+
+
     struct stringList *appendedPasswords = manipulateList(users.usernames, '\0', "00", 1);
     tryPasswords(appendedPasswords, users.passwords, users.hashSetting);
     freeStringList(appendedPasswords);
@@ -100,12 +102,13 @@ int main(int argc, char **argv)
     freeStringList(pwListUpdated);
     
     pwListUpdated = capitalList(pwListMain);
-    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
-    
-    pwListUpdated = combinationList(pwListMain, pwListUpdated);
-    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
+    struct stringList *pwListUpdated2 = combinationList(pwListMain, pwListUpdated);
+    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);    
     freeStringList(pwListUpdated);
 
+
+    tryPasswords(pwListUpdated2, users.passwords, users.hashSetting);
+    
 
     pwListUpdated = combinationList(pwListMain, users.names);
     tryPasswords(pwListUpdated, users.passwords, users.hashSetting);

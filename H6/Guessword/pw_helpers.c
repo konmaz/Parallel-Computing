@@ -237,8 +237,6 @@ struct stringList *readStringsFile(char *filename, size_t maxLength) {
     MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
     MPI_Comm_rank(MPI_COMM_WORLD, &processId);
 
-    printf("%d %d\n",processId, numProcesses);
-
     // Determine the number of entries
     FILE *file = fopen(filename, "r");
     if(file == NULL) {
@@ -261,18 +259,17 @@ struct stringList *readStringsFile(char *filename, size_t maxLength) {
     // Put results in a stringList
     struct stringList *results = allocStringList(localSize, maxLength);
 
-
+    // Skip the start lines
     for (int i = 0; i < start; ++i) {
         skip_line(file);
     }
 
-
+    // read only local size lines
     for(int i = 0; i < localSize; i++) {
         fgets(results->strings[i], maxLength, file);
         strtok(results->strings[i], "\n"); // get rid of the newline at the end
     }
 
-    printf("\n%d %d\n",processId, localSize);
     fclose(file); // clean up
     return results;
 }
