@@ -106,6 +106,12 @@ int main(int argc, char **argv)
     tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
     freeStringList(pwListUpdated);
 
+
+    pwListUpdated = combinationList(pwListMain, users.names);
+    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
+    freeStringList(pwListUpdated);
+
+
     ///////////////////////////////////////////////////////////////////
     // Cleanup
     ///////////////////////////////////////////////////////////////////
