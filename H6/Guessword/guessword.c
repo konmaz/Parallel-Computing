@@ -12,21 +12,21 @@
  *
  * @return The number of lines a file has
  */
-int countLines(char *filename){
-    FILE *fp = fopen(filename,"r");
-    int ch=0;
-    int lines=0;
-    while(!feof(fp))
+int countLines(char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+    int ch = 0;
+    int lines = 0;
+    while (!feof(fp))
     {
         ch = fgetc(fp);
-        if(ch == '\n')
+        if (ch == '\n')
         {
             lines++;
         }
     }
     fclose(fp);
     return lines;
-
 }
 
 /**
@@ -34,46 +34,44 @@ int countLines(char *filename){
  * @param filename
  * @param numberOfParts
  */
-void splitter(char *filename,int numberOfParts){
-    FILE *fp = fopen(filename,"r");
-    int ch=0;
-    int lines=0;
-    while(!feof(fp))
+void splitter(char *filename, int numberOfParts)
+{
+    FILE *fp = fopen(filename, "r");
+    int ch = 0;
+    int lines = 0;
+    while (!feof(fp))
     {
         ch = fgetc(fp);
-        if(ch == '\n')
+        if (ch == '\n')
         {
             lines++;
         }
     }
     fclose(fp);
-
-
-
 }
-
 
 /**
  * Our entrypoint. We require two arguments to our program: the paths to a passwd and
  * shadow file. The number of threads/processes is dictated by MPI, and is out of our
  * control at this point.
- * 
+ *
  * Run like: mpiexec -n <threads> ./guessword <passwd> <shadow>
  */
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     // Check arguments
-    if(argc != 3) {
+    if (argc != 3)
+    {
         fprintf(stderr, "Usage: ./guessword <passwd> <shadow>");
         return EXIT_FAILURE;
     }
-
 
     MPI_Init(&argc, &argv);
 
     ///////////////////////////////////////////////////////////////////
     // We now set up the local environment
     ///////////////////////////////////////////////////////////////////
-    
+
     // Read the password/shadow files and parse all input
     char *passwdPath = argv[1];
     char *shadowPath = argv[2];
@@ -90,11 +88,23 @@ int main(int argc, char **argv) {
     // We will try the provided list of passwords and all usernames appended
     // with 00.
 
-   tryPasswords(pwListMain, users.passwords, users.hashSetting);
+    tryPasswords(pwListMain, users.passwords, users.hashSetting);
+    
 
-   struct stringList *appendedPasswords = manipulateList(users.usernames, '\0', "00", 1);
-   tryPasswords(appendedPasswords, users.passwords, users.hashSetting);
-
+    struct stringList *appendedPasswords = manipulateList(users.usernames, '\0', "00", 1);
+    tryPasswords(appendedPasswords, users.passwords, users.hashSetting);
+    freeStringList(appendedPasswords);
+    
+    struct stringList *pwListUpdated = uppercaseList(pwListMain);
+    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
+    freeStringList(pwListUpdated);
+    
+    pwListUpdated = capitalList(pwListMain);
+    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
+    
+    pwListUpdated = combinationList(pwListMain, pwListUpdated);
+    tryPasswords(pwListUpdated, users.passwords, users.hashSetting);
+    freeStringList(pwListUpdated);
 
     ///////////////////////////////////////////////////////////////////
     // Cleanup
@@ -102,14 +112,11 @@ int main(int argc, char **argv) {
 
     // Clean password list
     freeStringList(pwListMain);
-    freeStringList(appendedPasswords);
 
     // Free users struct/information
     freeUserData(users);
 
-
     MPI_Finalize();
-
-
+    return EXIT_SUCCESS;
 
 }
